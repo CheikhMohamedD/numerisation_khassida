@@ -77,12 +77,63 @@ OpenCV, fontTools, uharfbuzz. Voir `requirements.txt`.
 
 ---
 
+## M4 — OCR v1 & CER de référence ✅ (baseline établie ; boucle câblée)
+
+### M4.1 Jeu de test figé + vérité terrain
+- **Gold** : `data/test_set/gold.jsonl` — **10 lignes de la page 1** transcrites
+  à la main en arabe vocalisé (isti'ādha + basmala + ṣalawāt), vérifiées via le
+  crop calligraphique **et** le parallèle classique. À **étendre** ensuite à des
+  pages plus variées.
+
+### M4.2 Évaluation CER/WER
+- **Script** : `eval/cer.py` (jiwer). Rapporte **CER brut** (diacritiques inclus)
+  et **CER sans diacritiques** (rasm), + WER, par ligne et agrégé.
+- **Correctif** : la plage de diacritiques englobait par erreur les lettres de
+  base (0621–064A) ; corrigé et centralisé dans `scripts/normalize.py`
+  (`strip_diacritics`, marques seules : 0610–061A, 064B–065F, 0670, 06D6–06ED).
+
+### M4.3 OCR baseline (Tesseract `ara`) + CER de référence
+- **Script** : `ocr/ocr_khassida_baseline.py` → `data/lines/khassida/ocr.jsonl`
+  (352 lignes). Tesseract générique sur la calligraphie warsh = **hors
+  distribution**, volontairement faible.
+- **CER de référence (à battre)** : **79,2 % brut · 76,6 % rasm · WER 113,7 %**
+  (rapport : `eval/reports/cer_ocr.json`). Certaines lignes vides (Tesseract
+  abandonne) ; la ligne 7 tombe à 39 % (capte « وسلم … بارك »).
+
+### M4.4 Boucle d'alignement fermée
+- `scripts/align.py --khassida-ocr data/lines/khassida/ocr.jsonl` → mode
+  **Needleman-Wunsch** : 268 paires, mais **0 confiante** (score max 0,47,
+  moyenne 0,22).
+- **Diagnostic honnête** : l'alignement est borné par la qualité des **deux**
+  OCR (khassida bruité **et** référence classique bruitée). La boucle est prête ;
+  il faut d'abord **nettoyer la référence** (le classique est de l'imprimé
+  propre → gros gain facile) puis **entraîner un vrai OCR khassida**.
+
+### Ce que M4 établit
+- Une **cible chiffrée** : tout modèle entraîné doit passer **sous 76,6 % CER**.
+- Un **harnais d'évaluation** reproductible (test figé + CER).
+- La **boucle d'alignement** opérationnelle, prête à s'améliorer avec de
+  meilleurs OCR.
+
+### Non fait (assumé, nécessite compute/labels)
+- Entraînement neuronal (Kraken/TrOCR ou VLM Soup) pour **battre** la baseline :
+  nécessite des labels fiables (référence nettoyée + alignement confiant) et du
+  GPU. C'est l'objet de M5.
+- Génération synthétique : nécessite soit la police v0 **avec vrais tracés**,
+  soit une police arabe tierce (Amiri) + rendu avec *shaping* (libraqm) —
+  reporté pour éviter un rendu arabe incorrect.
+
+---
+
 ## État des jalons
 
 - [x] **M2** — texte de référence (268 vers), segmentation (352 lignes),
   alignement provisoire (352 paires). *Pipeline OK ; qualité à raffiner.*
 - [~] **M3** — exemplaires (8535) + squelette de police v0 avec shaping validé.
   *Reste : vectoriser les exemplaires pour remplacer les placeholders.*
+- [x] **M4** — jeu de test figé (10 lignes gold), harnais CER, **CER de
+  référence 76,6 % (rasm)**, boucle d'alignement fermée (NW). *Reste (M5) :
+  nettoyer la référence + entraîner un OCR pour battre la baseline.*
 
 ## Limites assumées (honnêteté)
 - OCR classique = **brouillon** (à corriger, surtout aux endroits critiques).

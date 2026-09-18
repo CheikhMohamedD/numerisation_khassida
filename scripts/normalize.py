@@ -41,6 +41,19 @@ def normalize_text(text: str) -> str:
     return text
 
 
+# Marques diacritiques SEULES (n'inclut PAS les lettres de base 0621–064A) :
+# signes/honorifiques 0610–061A, harakat 064B–065F, alef suscrit 0670,
+# marques coraniques 06D6–06ED.
+DIACRITICS = (set(range(0x0610, 0x061B)) | set(range(0x064B, 0x0660))
+              | {0x0670} | set(range(0x06D6, 0x06EE)))
+_DIAC_TABLE = dict.fromkeys(DIACRITICS, None)
+
+
+def strip_diacritics(s: str) -> str:
+    """Retire les diacritiques en CONSERVANT les lettres de base (rasm)."""
+    return normalize_text(s).translate(_DIAC_TABLE)
+
+
 ARABIC_CHAR = re.compile(r"[؀-ۿ]")
 
 

@@ -55,6 +55,8 @@ faisable sans corpus annoté ni police existante.
 - [x] **M1** Segmentation ligne de la khassida (352 lignes) — voir [`WORKLOG.md`](WORKLOG.md)
 - [x] **M2** Texte de référence (268 vers) + alignement provisoire (352 paires) — pipeline OK, qualité à raffiner
 - [~] **M3** Exemplaires de glyphes (7971 PAWs) + **squelette de police v0** (shaping HarfBuzz validé) ; reste à vectoriser les tracés
+- [x] **M4** Jeu de test figé + CER : **baseline 76,6 % (rasm)** à battre ; boucle d'alignement fermée (Needleman-Wunsch)
+- [ ] **M5** Nettoyer la référence + entraîner un OCR (Kraken/TrOCR ou VLM Soup) pour passer sous la baseline
 - [ ] **M4** OCR v1 (synthétique + seed) — CER de référence
 - [ ] **M5** Boucle bootstrapping (2–3 tours) + active learning
 - [ ] **M6** Post-correction LLM (SFT puis DPO/RLVR)

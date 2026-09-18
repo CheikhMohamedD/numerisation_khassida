@@ -30,18 +30,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
-from normalize import normalize_text  # noqa: E402
+from normalize import strip_diacritics as bare  # noqa: E402
 
 REF = ROOT / "data" / "reference_text" / "verses.jsonl"
 LINES = ROOT / "data" / "lines" / "khassida" / "manifest.jsonl"
 OUT = ROOT / "data" / "alignment" / "pairs.jsonl"
-
-HARAKAT = dict.fromkeys(range(0x0610, 0x0653), None)
-
-
-def bare(s):
-    """Texte sans diacritiques pour la comparaison de similarité."""
-    return normalize_text(s).translate(HARAKAT)
 
 
 def load_jsonl(p):
