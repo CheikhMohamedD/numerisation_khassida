@@ -12,7 +12,7 @@ texte. On n'utilise **pas** les *presentation forms* (U+FB50–FEFF).
 | Sujet | Décision | Notes |
 |---|---|---|
 | Normalisation | `NFC` | à appliquer systématiquement |
-| Diacritiques (ḥarakāt) | ⬜ inclure / ⬜ exclure | les Khassida sont souvent **vocalisées** → décider tôt |
+| Diacritiques (ḥarakāt) | ✅ **INCLURE** | confirmé : le classique et la khassida sont **entièrement vocalisés** |
 | Alif variants | unifier ? (أ إ آ ا) | conserver la forme écrite, ne pas normaliser à `ا` |
 | Hamza | positions (ء ئ ؤ إ أ) | conserver la graphie source |
 | Tāʾ marbūṭa vs hāʾ | ة vs ه | conserver la graphie source |
