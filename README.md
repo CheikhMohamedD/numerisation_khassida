@@ -52,9 +52,9 @@ faisable sans corpus annoté ni police existante.
 ## Où en est-on — jalons
 
 - [x] **M0** Cadrage : PDF déposés + rasterisés (23+32 p.), politique Unicode (diacritiques inclus), stratégie corpus parallèle
-- [ ] **M1** Prétraitement + segmentation ligne (classique & khassida)
-- [ ] **M2** Texte de référence (OCR du classique) + **alignement** vers ↔ lignes → paires (remplace la transcription manuelle)
-- [ ] **M3** Police brouillon v0 (lettres + formes principales)
+- [x] **M1** Segmentation ligne de la khassida (352 lignes) — voir [`WORKLOG.md`](WORKLOG.md)
+- [x] **M2** Texte de référence (268 vers) + alignement provisoire (352 paires) — pipeline OK, qualité à raffiner
+- [~] **M3** Exemplaires de glyphes (7971 PAWs) + **squelette de police v0** (shaping HarfBuzz validé) ; reste à vectoriser les tracés
 - [ ] **M4** OCR v1 (synthétique + seed) — CER de référence
 - [ ] **M5** Boucle bootstrapping (2–3 tours) + active learning
 - [ ] **M6** Post-correction LLM (SFT puis DPO/RLVR)

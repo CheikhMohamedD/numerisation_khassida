@@ -5,6 +5,13 @@ scikit-image
 numpy
 Pillow
 
+# --- OCR de référence (M2) ---
+pytesseract          # nécessite Tesseract + langue `ara` (brew install tesseract tesseract-lang)
+
+# --- Reconstruction de police (M3) ---
+fonttools            # construction TTF + features OpenType (feaLib)
+uharfbuzz            # vérification du shaping arabe
+
 # --- Segmentation ligne / OCR spécialisé ---
 kraken               # HTR/OCR, RTL, historique (voie 1)
 # calamari-ocr       # alternative CRNN+CTC
@@ -15,10 +22,8 @@ kraken               # HTR/OCR, RTL, historique (voie 1)
 #   pip install "soup-cli[train]"      # OCR-VLM + post-correction
 #   pip install "soup-cli[vision]"     # modality: vision
 
-# --- Reconstruction de police ---
-fonttools
-uharfbuzz            # vérifier le shaping arabe (init/medi/fina/isol, liga, mark)
-# FontForge s'installe hors pip : brew install fontforge (module python inclus)
+# FontForge (optionnel, hors pip) : brew install fontforge — pour l'édition fine
+# des glyphes vectorisés (le squelette v0 est construit avec fontTools ci-dessus).
 
 # --- Évaluation ---
 jiwer                # CER / WER
