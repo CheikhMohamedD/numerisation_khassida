@@ -1,0 +1,28 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Données lourdes / sensibles — versionner les scripts, pas les binaires
+data/raw_pdfs/*
+data/images/*
+data/lines/*
+data/synthetic/*
+!data/**/.gitkeep
+
+# Sorties de modèles / entraînement
+ocr/out/
+ocr/checkpoints/
+postcorrection/out/
+*.safetensors
+*.gguf
+
+# Build de police (garder les sources .sfd/.ufo, ignorer les binaires générés)
+font/build/*
+!font/build/.gitkeep
+*.ttf
+*.otf
+
+# Rapports générés
+eval/reports/*
+!eval/reports/.gitkeep

@@ -1,0 +1,31 @@
+# OCR arabe par modèle vision-langage (VLM), via Soup CLI.
+# Voie 2 du plan (§5). Un exemple = une image de ligne + sa transcription.
+# Doc : docs/soup-docs.md  (/docs/multimodal, /docs/modality-ii, /docs/lora-quality)
+#
+#   pip install "soup-cli[vision]"
+#   soup train -c ocr/configs/soup-vision-ocr.yaml
+
+base: Qwen/Qwen2-VL-7B-Instruct
+task: sft
+modality: vision
+
+data:
+  train: ../data/ocr_lines_train.jsonl   # format llava : <image> + texte cible
+  format: llava
+  image_dir: ../data/lines
+  val_split: 0.1
+
+training:
+  epochs: 3
+  lr: 1e-5
+  quantization: 4bit          # QLoRA — tient sur petit GPU
+  lora:
+    r: 64
+    alpha: 16
+
+output: ./out
+
+# Exemple de ligne JSONL (data/ocr_lines_train.jsonl) :
+# {"image": "line_00042.png", "conversations": [
+#   {"from": "human", "value": "<image>\nTranscris fidèlement le texte arabe."},
+#   {"from": "gpt",   "value": "نص عربي مكتوب بخط غير معياري"}]}

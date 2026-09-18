@@ -1,0 +1,24 @@
+# --- Prétraitement image / PDF ---
+pdf2image            # rasterisation (nécessite Poppler: brew install poppler)
+opencv-python-headless
+scikit-image
+numpy
+Pillow
+
+# --- Segmentation ligne / OCR spécialisé ---
+kraken               # HTR/OCR, RTL, historique (voie 1)
+# calamari-ocr       # alternative CRNN+CTC
+# transformers       # TrOCR / VLM (voie 2, via Soup)
+
+# --- Entraînement modèles (via Soup CLI) ---
+# Installer séparément selon la doc Soup :
+#   pip install "soup-cli[train]"      # OCR-VLM + post-correction
+#   pip install "soup-cli[vision]"     # modality: vision
+
+# --- Reconstruction de police ---
+fonttools
+uharfbuzz            # vérifier le shaping arabe (init/medi/fina/isol, liga, mark)
+# FontForge s'installe hors pip : brew install fontforge (module python inclus)
+
+# --- Évaluation ---
+jiwer                # CER / WER
