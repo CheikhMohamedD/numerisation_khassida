@@ -30,3 +30,6 @@ eval/reports/*
 # Exemplaires de glyphes (regenerables depuis data + script)
 font/glyph_exemplars/paws/
 font/glyph_exemplars/marks/
+
+# Rapport visuel (genere, images integrees)
+report.html
