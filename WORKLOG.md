@@ -150,3 +150,15 @@ OpenCV, fontTools, uharfbuzz. Voir `requirements.txt`.
 4. **Vectoriser** les exemplaires (Potrace) et remplacer les placeholders de la
    police, lettre × forme, à la même graisse ; contrôler par overlay.
 5. Boucle bootstrapping (police → synthétique → OCR → exemplaires → police).
+
+## M5 (préparation) — pont vers Soup opérationnalisé
+
+- **Script** : `ocr/build_soup_dataset.py` → `data/ocr_lines_train.jsonl`
+  (format **Soup / LLaVA** : `<image>` + transcription). Source : gold vérifié +
+  alignement confiant (`needs_review=false`).
+- **État** : **10 / 200** lignes fiables (10 gold). La jauge du rapport reflète
+  ce chiffre. Déclenchement Soup dès le seuil atteint :
+  `soup train -c ocr/configs/soup-vision-ocr.yaml`.
+- **Ce qui manque pour tirer le déclencheur** : étendre les lignes vérifiées —
+  soit gold étendu (transcription assistée par le classique), soit alignement
+  confiant obtenu via une référence classique nettoyée + un meilleur OCR khassida.

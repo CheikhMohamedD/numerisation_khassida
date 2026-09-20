@@ -179,9 +179,9 @@ def main():
                       for t, r in font_shaping())
     ci, ki = parallel_pair()
 
-    # Prêt à déclencher Soup ? Il faut des paires (image ligne ↔ texte) FIABLES.
-    pairs = load_jsonl(ROOT / "data/alignment/pairs.jsonl")
-    confident = sum(1 for p in pairs if not p.get("needs_review", True))
+    # Prêt à déclencher Soup ? Il faut des lignes (image ↔ texte) FIABLES,
+    # matérialisées dans le jeu d'entraînement Soup (gold + alignement confiant).
+    confident = len(load_jsonl(ROOT / "data/ocr_lines_train.jsonl"))
     target = 200
     ready = confident >= target
     gauge = f"""
@@ -191,7 +191,7 @@ def main():
       dès qu'on a des paires <i>(image de ligne ↔ texte)</i> fiables issues de l'alignement.
       Ensuite : <b>post-correction (M6)</b>, puis <b>service/export (M8)</b>.</p>
       <div class=meter><div class=fill style='width:{min(100,confident/target*100):.0f}%'></div></div>
-      <p class=cap>Paires fiables : <b>{confident}</b> / {target} requises —
+      <p class=cap>Lignes d'entraînement fiables : <b>{confident}</b> / {target} requises —
       {"✅ prêt à lancer l'entraînement OCR-VLM" if ready else
        "⛔ pas encore : finir M5 (nettoyer la référence classique → alignement confiant)"}.</p>
       <code>soup train -c ocr/configs/soup-vision-ocr.yaml   # pip install \"soup-cli[vision]\"</code>
