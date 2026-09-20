@@ -75,6 +75,15 @@ def exemplar_sheet(n=40):
     return b64(sheet, 900)
 
 
+def parallel_pair():
+    """Classique page 1 ↔ khassida page 1 (même contenu, deux typographies)."""
+    c = ROOT / "data" / "images" / "classique" / "page-01.png"
+    k = ROOT / "data" / "images" / "khassida" / "page-01.png"
+    ci = b64(Image.open(c), 430) if c.exists() else None
+    ki = b64(Image.open(k), 430) if k.exists() else None
+    return ci, ki
+
+
 def font_shaping():
     ttf = ROOT / "font" / "build" / "khassida-scaffold-v0.ttf"
     if not ttf.exists():
@@ -89,6 +98,40 @@ def font_shaping():
         hb.shape(font, buf, {})
         res.append((t, "  ".join(order[i.codepoint] for i in buf.glyph_infos)))
     return res
+
+
+# Feuille de route : (id, titre, statut, outil, soup?)  statut: done|current|todo
+ROADMAP = [
+    ("M0", "Cadrage + rasterisation (23+32 p.)", "done", "Poppler", None),
+    ("M1", "Segmentation lignes (352)", "done", "OpenCV (Kraken en prod)", None),
+    ("M2", "Texte de référence + alignement", "done", "Tesseract + NW", None),
+    ("M3", "Police v0 (shaping validé)", "done", "fontTools/HarfBuzz", None),
+    ("M4", "CER de référence (76,6 % rasm)", "done", "Tesseract baseline", None),
+    ("M5", "Nettoyer réf. + OCR entraîné",
+     "current", "Kraken/TrOCR ou VLM",
+     "soup train -c ocr/configs/soup-vision-ocr.yaml   # [vision] — /docs/multimodal"),
+    ("M6", "Post-correction (LLM arabe)", "todo", "Soup SFT + DPO/RLVR",
+     "soup train …  # SFT texte OCR→propre, puis DPO/RLVR — /docs/rlvr /docs/online-dpo"),
+    ("M7", "Police v1 (ligatures, diacritiques)", "todo", "FontForge/HarfBuzz", None),
+    ("M8", "Pipeline + service", "todo", "Soup serving/export",
+     "soup serve … / export gguf-ollama — /docs/serving /docs/export-to-gguf-ollama"),
+]
+
+
+def build_roadmap():
+    color = {"done": "#1c7d3f", "current": "#b45309", "todo": "#9a9a97"}
+    badge = {"done": "✓ fait", "current": "● en cours", "todo": "○ à venir"}
+    cards = []
+    for mid, title, status, tool, soup in ROADMAP:
+        soup_html = (f"<div class=souptrig>🍲 <b>Déclenchement Soup ici</b>"
+                     f"<code>{soup}</code></div>") if soup else ""
+        cards.append(
+            f"<div class='mcard {status}'>"
+            f"<div class=mhead><span class=mid>{mid}</span>"
+            f"<span class=mbadge style='color:{color[status]}'>{badge[status]}</span></div>"
+            f"<div class=mtitle>{title}</div>"
+            f"<div class=mtool>{tool}</div>{soup_html}</div>")
+    return "".join(cards)
 
 
 def main():
@@ -134,6 +177,25 @@ def main():
     seg = seg_overlay()
     shaping = "".join(f"<tr><td class=ar dir=rtl>{t}</td><td class=mono>{r}</td></tr>"
                       for t, r in font_shaping())
+    ci, ki = parallel_pair()
+
+    # Prêt à déclencher Soup ? Il faut des paires (image ligne ↔ texte) FIABLES.
+    pairs = load_jsonl(ROOT / "data/alignment/pairs.jsonl")
+    confident = sum(1 for p in pairs if not p.get("needs_review", True))
+    target = 200
+    ready = confident >= target
+    gauge = f"""
+    <div class=soupbox>
+      <div class=soupttl>🍲 Quand déclencher Soup ?</div>
+      <p>Soup entraîne les <b>modèles</b>. Le 1ᵉʳ déclenchement utile = l'<b>OCR-VLM (M5)</b>,
+      dès qu'on a des paires <i>(image de ligne ↔ texte)</i> fiables issues de l'alignement.
+      Ensuite : <b>post-correction (M6)</b>, puis <b>service/export (M8)</b>.</p>
+      <div class=meter><div class=fill style='width:{min(100,confident/target*100):.0f}%'></div></div>
+      <p class=cap>Paires fiables : <b>{confident}</b> / {target} requises —
+      {"✅ prêt à lancer l'entraînement OCR-VLM" if ready else
+       "⛔ pas encore : finir M5 (nettoyer la référence classique → alignement confiant)"}.</p>
+      <code>soup train -c ocr/configs/soup-vision-ocr.yaml   # pip install \"soup-cli[vision]\"</code>
+    </div>"""
 
     html = f"""<!doctype html><html lang=fr><head><meta charset=utf-8>
 <title>Numérisation Khassida — état</title>
@@ -151,26 +213,59 @@ def main():
  .mono{{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#3b3b3b}}
  img{{border:1px solid #eceae4;border-radius:6px}}
  .cap{{color:#5f5f5d;font-size:13px;margin:4px 0 10px}}
+ .par{{display:flex;gap:14px;flex-wrap:wrap}} .par figure{{margin:0}}
+ .par figcaption{{font-size:12px;color:#5f5f5d;text-align:center;margin-top:4px}}
+ .road{{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:12px}}
+ .mcard{{background:#fff;border:1px solid #eceae4;border-radius:12px;padding:12px;
+   border-left:5px solid #9a9a97}}
+ .mcard.done{{border-left-color:#1c7d3f}} .mcard.current{{border-left-color:#b45309;
+   box-shadow:0 4px 14px rgba(180,83,9,.14)}}
+ .mhead{{display:flex;justify-content:space-between;align-items:center}}
+ .mid{{font-weight:700;font-size:18px}} .mbadge{{font-size:12px;font-weight:700}}
+ .mtitle{{margin:6px 0 4px;font-size:14px}} .mtool{{font-size:12px;color:#5f5f5d}}
+ .souptrig{{margin-top:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;
+   padding:7px 9px;font-size:12px}}
+ .souptrig code,.soupbox code{{display:block;margin-top:4px;font-family:ui-monospace,Menlo,monospace;
+   font-size:11px;background:#1c1c1c;color:#fcfbf8;padding:6px 8px;border-radius:6px;overflow-x:auto}}
+ .soupbox{{background:#fff;border:1px solid #eceae4;border-left:5px solid #b45309;
+   border-radius:12px;padding:16px;margin-top:12px}}
+ .soupttl{{font-size:18px;font-weight:700;margin-bottom:6px}}
+ .meter{{height:12px;background:#eceae4;border-radius:99px;overflow:hidden;margin:8px 0}}
+ .meter .fill{{height:100%;background:#b45309}}
 </style></head><body>
 <h1>Numérisation des Khassida — état visuel</h1>
 <p class=cap>Corpus parallèle (classique ↔ calligraphie). Jalons M0–M4. Rapport auto-généré.</p>
 {st}
 
-<h2>1 · Segmentation en lignes (page 1)</h2>
+<h2>1 · Corpus parallèle (même contenu, deux typographies)</h2>
+<p class=cap>La version classique (imprimé vocalisé) sert de <b>texte de référence</b> ;
+on l'aligne sur la calligraphie → paires <i>(image ↔ texte)</i> sans transcription manuelle.</p>
+<div class=par>
+  <figure>{f"<img src='{ci}'>" if ci else "<i>n/a</i>"}<figcaption>Classique — page 1 (référence)</figcaption></figure>
+  <figure>{f"<img src='{ki}'>" if ki else "<i>n/a</i>"}<figcaption>Khassida — page 1 (cible OCR + police)</figcaption></figure>
+</div>
+
+<h2>2 · Segmentation en lignes (page 1)</h2>
 <p class=cap>Chaque cadre rouge = une ligne détectée (profil de projection).</p>
 {f"<img src='{seg}'>" if seg else "<i>page indisponible</i>"}
 
-<h2>2 · Lignes page 1 — gold vs OCR baseline</h2>
+<h2>3 · Lignes page 1 — gold vs OCR baseline</h2>
 <p class=cap>Colonnes : image · vérité terrain (gold) · OCR Tesseract (baseline) · CER (rasm).</p>
 <table><tr><th>Ligne</th><th>Gold</th><th>OCR baseline</th><th>CER</th></tr>{line_rows}</table>
 
-<h2>3 · Exemplaires de glyphes (page 1)</h2>
+<h2>4 · Exemplaires de glyphes (page 1)</h2>
 <p class=cap>Composantes connexes = tracés réels à la graisse d'origine (matière pour la police).</p>
 {f"<img src='{ex}'>" if ex else "<i>exemplaires non générés</i>"}
 
-<h2>4 · Police v0 — vérification du shaping (HarfBuzz)</h2>
+<h2>5 · Police v0 — vérification du shaping (HarfBuzz)</h2>
 <p class=cap>La bonne forme contextuelle est choisie selon la position (glyphes placeholder).</p>
 <table><tr><th>Texte</th><th>Glyphes sélectionnés</th></tr>{shaping}</table>
+
+<h2>6 · Feuille de route &amp; déclenchement de Soup</h2>
+<p class=cap>Soup n'intervient pas au début (image, segmentation, police) — il entraîne les
+<b>modèles</b>. Les cartes 🍲 marquent les moments où on lance <code style="background:#1c1c1c;color:#fcfbf8;padding:1px 5px;border-radius:4px">soup</code>.</p>
+{gauge}
+<div class=road style="margin-top:14px">{build_roadmap()}</div>
 </body></html>"""
 
     OUT.write_text(html, encoding="utf-8")
