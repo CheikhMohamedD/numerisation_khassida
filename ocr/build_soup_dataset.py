@@ -41,8 +41,11 @@ def main():
     for g in load_jsonl(GOLD):
         if g["path"] not in seen:
             seen.add(g["path"]); rows.append((g["path"], g["text"], "gold"))
-    # 2) alignement confiant (dès qu'un OCR khassida de qualité existe)
+    # 2) alignement fiable : ancres + paires validées en revue ; on exclut les
+    #    lignes rejetées (illisibles ou mal segmentées).
     for p in load_jsonl(PAIRS):
+        if p.get("rejected"):
+            continue
         if not p.get("needs_review", True) and p["line_path"] not in seen:
             seen.add(p["line_path"]); rows.append((p["line_path"], p["ref_text"], "align"))
 

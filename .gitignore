@@ -33,3 +33,7 @@ font/glyph_exemplars/marks/
 
 # Rapport visuel (genere, images integrees)
 report.html
+
+# Interface de revue (generee) + export
+review.html
+review.json

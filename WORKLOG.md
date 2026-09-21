@@ -232,3 +232,23 @@ aucun réglage supplémentaire ne rendra une similarité de texte fiable partout
 3. Ou abaisser `--anchor-min` et vérifier manuellement les ancres ajoutées.
 
 ---
+
+## M5.7 — Interface de revue (outil pour passer 37 → ~200 lignes)
+
+- **`scripts/make_review_ui.py`** → `review.html` (315 lignes à revoir, **72 Ko**).
+  Images en **chemins relatifs** (pas de base64) → page légère et images nettes,
+  chargement paresseux. À ouvrir **depuis la racine du projet**.
+  - Par ligne : image calligraphique + textarea RTL pré-rempli avec le texte
+    aligné, boutons **Valider / Rejeter**, badge ancre/interpolée.
+  - **Clavier** : `Entrée` valider + suivant · `Ctrl+X` rejeter · `Alt+↑/↓` naviguer.
+  - **Sauvegarde auto** (localStorage) : on peut fermer et reprendre.
+  - **⬇ Exporter review.json**.
+- **`scripts/apply_review.py review.json`** → réinjecte : `ok` ⇒ paire fiable
+  (`needs_review:false`, texte corrigé si édité), `rejected` ⇒ `rejected:true`
+  (exclue du jeu d'entraînement). Reconstruit ensuite le jeu Soup.
+- **Vérifié** (Playwright, headless) : 315 cartes rendues, **0 erreur JS**,
+  validation fonctionnelle (compteur 0→1, carte marquée), lazy-loading OK.
+- **Point d'honnêteté** : les textes proposés viennent de la référence OCR
+  (27,4 % CER) → il faut souvent **corriger**, pas seulement valider. Cela reste
+  bien plus rapide qu'une transcription à blanc (texte ~3/4 correct + image en
+  regard), et c'est ce qui produira des labels propres.
