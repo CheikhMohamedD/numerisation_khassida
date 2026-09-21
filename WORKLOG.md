@@ -162,3 +162,73 @@ OpenCV, fontTools, uharfbuzz. Voir `requirements.txt`.
 - **Ce qui manque pour tirer le déclencheur** : étendre les lignes vérifiées —
   soit gold étendu (transcription assistée par le classique), soit alignement
   confiant obtenu via une référence classique nettoyée + un meilleur OCR khassida.
+
+---
+
+## M5 — Nettoyage de la référence & alignement robuste ✅ (gains mesurés)
+
+Principe suivi : **aucune amélioration sans mesure**. Chaque changement de
+config est validé par CER contre un gold.
+
+### M5.0 Tentative : récupérer le texte du PDF classique sans OCR
+- `pdffonts` → PDF **ArabTeX** (police `xnsh14`, encodage translittération,
+  **aucun ToUnicode**). Décodage propre impraticable (ligatures encodées).
+- **Conclusion** : la référence passe nécessairement par l'OCR. Piste fermée
+  proprement (évite d'y perdre du temps plus tard).
+
+### M5.1 Gold pour le classique
+- `data/test_set/gold_classique.jsonl` — 6 lignes de prose (page 1), lisibles
+  sans ambiguïté, servant à **mesurer** la qualité de la référence.
+
+### M5.2 Optimisation mesurée de l'OCR de référence
+- **Script** : `ocr/tune_classique_ocr.py` (5 prétraitements × 2 PSM).
+- **Résultat** : `upscale ×1.5 + psm 6` → **CER rasm 27,4 %** contre **68,9 %**
+  pour la config précédente (`raw` + psm 6). **Gain ×2,5.**
+- Appliqué dans `ocr/ocr_classique.py` → référence passée de 268 à **306 vers**.
+
+### M5.3 Optimisation mesurée de l'OCR khassida
+- **Script** : `ocr/tune_khassida_ocr.py` (6 prétraitements × 3 PSM), mesuré sur
+  les 10 lignes gold.
+- **Résultat** : `down ×0.6 + psm 13` → **CER rasm 55,9 %** contre **76,6 %**
+  (baseline M4), et surtout **0 ligne vide** (contre 3-4 avant).
+  Contre-intuitif mais net : **réduire** la calligraphie très épaisse aide
+  Tesseract.
+- Appliqué dans `ocr/ocr_khassida_baseline.py`.
+
+| Étape | Avant | Après | Gain |
+|---|---|---|---|
+| OCR référence (classique) | 68,9 % | **27,4 %** | ×2,5 |
+| OCR khassida (baseline) | 76,6 % | **55,9 %** | −21 pts |
+
+### M5.4 Constat clé : la similarité de texte ne suffit pas
+Avec les deux OCR améliorés, l'alignement Needleman-Wunsch donnait encore
+**0 paire confiante** (score moyen 0,26). **Le bruit des deux OCR se cumule** :
+aucun réglage supplémentaire ne rendra une similarité de texte fiable partout.
+→ il fallait changer d'approche, pas pousser le tuning.
+
+### M5.5 Alignement par ANCRES + interpolation monotone
+- **Ajout** : `scripts/align.py --method anchor` (désormais le défaut).
+- Principe : garder les lignes qui matchent bien (**ancres**, sim ≥ 0,40,
+  strictement croissantes, recherche en fenêtre autour de la diagonale), puis
+  **interpoler** entre ancres. Le contenu étant dans le **même ordre** dans les
+  deux documents, l'interpolation est fiable *structurellement*.
+- **Résultat** : **28 ancres fiables** réparties sur l'ensemble des pages
+  + 324 lignes interpolées (marquées `needs_review`).
+
+### M5.6 Effet sur le déclencheur Soup
+- Jeu d'entraînement : **10 → 37 lignes fiables** (10 gold + 27 ancres) dans
+  `data/ocr_lines_train.jsonl`. Jauge : **37/200**.
+
+### Ce que M5 établit
+- Deux OCR **nettement meilleurs**, avec preuves chiffrées et configs figées.
+- Un alignement **robuste au bruit** (ancres + interpolation) remplaçant la
+  similarité pure.
+- Un jeu d'entraînement Soup **3,7× plus grand**.
+
+### Reste à faire pour tirer le déclencheur Soup (37 → ~200)
+1. **Vérifier/corriger les 324 paires interpolées** (les ancres bornent l'erreur :
+   revue rapide, pas transcription à l'aveugle) — c'est le chemin le plus direct.
+2. Ou **étendre le gold** page par page (transcription assistée par le classique).
+3. Ou abaisser `--anchor-min` et vérifier manuellement les ancres ajoutées.
+
+---

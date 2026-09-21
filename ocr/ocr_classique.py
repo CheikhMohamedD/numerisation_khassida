@@ -19,6 +19,7 @@ import json
 import sys
 from pathlib import Path
 
+import cv2
 import pytesseract
 from PIL import Image
 
@@ -30,10 +31,16 @@ IMG_DIR = ROOT / "data" / "images" / "classique"
 OUT_DIR = ROOT / "data" / "reference_text"
 
 
-def ocr_page(path: Path, lang: str, psm: int) -> str:
-    img = Image.open(path)
-    cfg = f"--oem 1 --psm {psm}"
-    txt = pytesseract.image_to_string(img, lang=lang, config=cfg)
+def ocr_page(path: Path, lang: str, psm: int, upscale: float = 1.5) -> str:
+    """OCR d'une page. Le sur-échantillonnage ×1.5 + psm 6 est la meilleure
+    config mesurée sur le gold classique (CER rasm 27.4 % vs 68.9 % sans) —
+    voir ocr/tune_classique_ocr.py."""
+    gray = cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2GRAY)
+    if upscale and upscale != 1.0:
+        gray = cv2.resize(gray, None, fx=upscale, fy=upscale,
+                          interpolation=cv2.INTER_CUBIC)
+    txt = pytesseract.image_to_string(Image.fromarray(gray), lang=lang,
+                                      config=f"--oem 1 --psm {psm}")
     return normalize_text(txt)
 
 

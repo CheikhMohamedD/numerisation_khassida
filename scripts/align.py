@@ -92,9 +92,80 @@ def needleman_wunsch(verses, lines, ocr_by_line, gap=-0.4):
     return list(reversed(pairs))
 
 
+def anchored(verses, lines, ocr_by_line, anchor_min=0.40):
+    """Alignement par ANCRES + interpolation monotone.
+
+    Deux OCR bruités rendent la similarité de texte insuffisante partout ; mais
+    quelques lignes matchent bien. On garde ces **ancres** (sim >= anchor_min,
+    strictement croissantes), puis on interpole linéairement entre elles. Le
+    contenu étant dans le même ordre dans les deux documents, l'interpolation
+    est fiable structurellement — bien plus que du proportionnel global.
+    """
+    sim = lambda a, b: SequenceMatcher(None, a, b).ratio()
+    ref_bare = [bare(v["text"]) for v in verses]
+    line_bare = [bare(ocr_by_line.get(l["line_id"], "")) for l in lines]
+    n, m = len(lines), len(verses)
+
+    # 1) meilleur candidat par ligne, dans une fenêtre autour de la diagonale
+    cands = []
+    for i in range(n):
+        if not line_bare[i]:
+            continue
+        centre = round(i * (m - 1) / max(1, n - 1))
+        lo, hi = max(0, centre - 12), min(m, centre + 13)
+        best_j, best_s = None, 0.0
+        for j in range(lo, hi):
+            s = sim(line_bare[i], ref_bare[j])
+            if s > best_s:
+                best_j, best_s = j, s
+        if best_j is not None and best_s >= anchor_min:
+            cands.append((i, best_j, best_s))
+
+    # 2) ancres = sous-suite strictement croissante (gloutonne par score)
+    anchors = []
+    for i, j, s in sorted(cands, key=lambda c: -c[2]):
+        if all(not (min(i, ai) < max(i, ai) and (j - aj) * (i - ai) <= 0)
+               for ai, aj, _ in anchors):
+            anchors.append((i, j, s))
+    anchors.sort()
+
+    # 3) interpolation entre ancres
+    pts = [(-1, -1)] + [(i, j) for i, j, _ in anchors] + [(n, m)]
+    pairs = []
+    anchor_idx = {i: s for i, _, s in anchors}
+    for i in range(n):
+        # encadrer i par deux ancres
+        prev = max((p for p in pts if p[0] <= i), key=lambda p: p[0])
+        nxt = min((p for p in pts if p[0] >= i), key=lambda p: p[0])
+        if prev[0] == i:
+            j = prev[1]
+        elif nxt[0] == i:
+            j = nxt[1]
+        elif nxt[0] == prev[0]:
+            j = prev[1]
+        else:
+            t = (i - prev[0]) / (nxt[0] - prev[0])
+            j = round(prev[1] + t * (nxt[1] - prev[1]))
+        j = max(0, min(m - 1, j))
+        v = verses[j]
+        is_anchor = i in anchor_idx
+        pairs.append({
+            "line_id": lines[i]["line_id"], "line_path": lines[i]["path"],
+            "ref_verse_id": v["id"], "ref_text": v["text"],
+            "method": "anchor" if is_anchor else "anchor_interp",
+            "score": round(anchor_idx[i], 3) if is_anchor else None,
+            "needs_review": not is_anchor,
+        })
+    print(f"  ancres retenues : {len(anchors)} (seuil {anchor_min})")
+    return pairs
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--khassida-ocr", default="", help="JSONL {line_id,text} d'un OCR khassida")
+    ap.add_argument("--method", choices=["nw", "anchor"], default="anchor",
+                    help="anchor (défaut, robuste au bruit) | nw (Needleman-Wunsch)")
+    ap.add_argument("--anchor-min", type=float, default=0.40)
     args = ap.parse_args()
 
     verses = load_jsonl(REF)
@@ -103,8 +174,12 @@ def main():
 
     if args.khassida_ocr:
         ocr = {r["line_id"]: r["text"] for r in load_jsonl(Path(args.khassida_ocr))}
-        pairs = needleman_wunsch(verses, lines, ocr)
-        method = "needleman_wunsch"
+        if args.method == "anchor":
+            pairs = anchored(verses, lines, ocr, args.anchor_min)
+            method = "anchor+interp"
+        else:
+            pairs = needleman_wunsch(verses, lines, ocr)
+            method = "needleman_wunsch"
     else:
         pairs = proportional(verses, lines)
         method = "proportional_draft"
